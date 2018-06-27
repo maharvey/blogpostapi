@@ -5,6 +5,9 @@ import logging
 import http.server
 import sqlite3
 import json
+from collections import OrderedDict, namedtuple
+
+ServerResponse = namedtuple('ServerResponse', 'code data')
 
 logging.basicConfig(level=logging.DEBUG,
         format='%(asctime)s  %(levelname)-7s  %(message)s')
@@ -18,6 +21,7 @@ class BlogDatabase:
 
     def open(self):
         if not os.path.isfile(self.filename):
+            # if database does not exist, create it
             log.info('creating {}'.format(self.filename))
             self.db = sqlite3.connect(self.filename)
 
@@ -29,6 +33,7 @@ class BlogDatabase:
                      'body string);')
             cursor.execute(query)
         else:
+            # open existing database
             log.info('opening {}'.format(self.filename))
             self.db = sqlite3.connect(self.filename)
 
@@ -58,9 +63,10 @@ class BlogDatabase:
 
         cursor = self.db.cursor()
         cursor.execute(query)
-        return [{'post_id': x[0],
-                 'title': x[1],
-                 'body': x[2]}
+        # preserve column order in json
+        return [OrderedDict([('post_id', x[0]),
+                             ('title', x[1]),
+                             ('body', x[2])])
                  for x in cursor.fetchall()]
 
 class ApiServer(http.server.BaseHTTPRequestHandler):
@@ -75,18 +81,18 @@ class ApiServer(http.server.BaseHTTPRequestHandler):
                 data = json.loads(content_body.decode())
                 log.debug('data: {}'.format(data))
                 self.db.add_entry(data['title'], data['body'])
-                return [ 201, None ]
+                return ServerResponse(201, None)
             except ValueError as e:
-                return [ 400, {'message': str(e)}]
+                return ServerResponse(400, {'message': str(e)})
         else:
-            return [ 400, {'message': 'invalid request'}]
+            return ServerResponse(400, {'message': 'invalid request'})
 
     def handle_posts(self):
         if self.command == 'GET':
             data = self.db.get_entries()
-            return [ 200, data ]
+            return ServerResponse(200, data)
         else:
-            return [ 400, {'message': 'invalid request'}]
+            return ServerResponse(400, {'message': 'invalid request'})
 
     def dispatch(self):
         endpoint = self.path
@@ -95,13 +101,13 @@ class ApiServer(http.server.BaseHTTPRequestHandler):
         elif endpoint == '/posts':
             resp = self.handle_posts()
         else:
-            resp = [ 400, {'message': 'invalid endpoint'}]
+            resp = ServerResponse(400, {'message': 'invalid endpoint'})
 
-        self.send_response(resp[0])
-        if resp[1] is not None:
+        self.send_response(resp.code)
+        if resp.data is not None:
             self.send_header('Content-type', 'application/json')
             self.end_headers()
-            self.wfile.write(bytes(json.dumps(resp[1]), 'UTF-8'))
+            self.wfile.write(bytes(json.dumps(resp.data), 'UTF-8'))
 
     def do_GET(self):
         self.dispatch()
@@ -110,6 +116,7 @@ class ApiServer(http.server.BaseHTTPRequestHandler):
         self.dispatch()
 
 def main():
+    # using with... helps ensure the database gets closed
     with BlogDatabase('blog.db') as database:
         ApiServer.db = database
         server = http.server.HTTPServer(('localhost', 80), ApiServer)
