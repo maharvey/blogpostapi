@@ -26,11 +26,11 @@ class BlogDatabase:
             self.db = sqlite3.connect(self.filename)
 
             cursor = self.db.cursor()
-            log.debug('sqlite3: {}'.format(query))
             query = ('CREATE TABLE posts ('
                      'post_id integer primary key asc autoincrement, '
                      'title string, '
                      'body string);')
+            log.debug('sqlite3: {}'.format(query))
             cursor.execute(query)
         else:
             # open existing database
@@ -81,7 +81,8 @@ class ApiServer(http.server.BaseHTTPRequestHandler):
                 data = json.loads(content_body.decode())
                 log.debug('data: {}'.format(data))
                 self.db.add_entry(data['title'], data['body'])
-                return ServerResponse(201, None)
+                return ServerResponse(201, {'Location':
+                    'http://localhost:80/posts'})
             except ValueError as e:
                 return ServerResponse(400, {'message': str(e)})
         else:

@@ -4,16 +4,40 @@
 
 import sys
 import argparse
+import json
+import requests
+from pprint import pprint
+
 
 def do_get():
-    print('do_get')
-# TODO
+    '''
+    print(('curl -i -H "content-type: application/json" '
+           '-XGET http://localhost:80/posts'))
+    '''
+
+    r = requests.get('http://localhost:80/posts')
+    pprint(r.json(), indent=4)
+
 
 def do_post(title, body):
-    print('do_post')
-    print('  title: "{}"'.format(title))
-    print('  body: "{}"'.format(body))
-# TODO
+    jdata = {'title': title, 'body': body}
+    '''
+    print(('curl -i -H "content-type: application/json" '
+           '-XPOST -d \'{}\' '
+           'http://localhost:80/post').format(json.dumps(jdata)))
+    '''
+
+    s = json.dumps(jdata)
+    r = requests.post('http://localhost:80/post',
+            headers={'content-type': 'application/json'},
+            data=s)
+    print(r.status_code)
+    if r.status_code >= 400:
+        print(r.json())
+		
+
+def do_test():
+	pass # TODO
 
 
 def main():
@@ -26,6 +50,8 @@ def main():
     post.add_argument('--title', help='title of post', required=True)
     post.add_argument('--body', help='body of post', required=True)
 
+    test = subparsers.add_parser('test', help='run acceptance tests')
+
     args = parser.parse_args(sys.argv[1:])
     if args.cmd == None:
         parser.print_help()
@@ -35,6 +61,8 @@ def main():
         # this is just for testing purposes, to exercise the api
         # don't need to handle multiple lines
         do_post(args.title, args.body)
+    elif args.cmd == 'test':
+        do_test()
 
 if __name__ == '__main__':
     main()
