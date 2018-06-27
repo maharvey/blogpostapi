@@ -34,6 +34,14 @@ To run the server,
 	cd blogserver
 	python3 server.py >blogserver.log
 
+It may be necesary to run the python server with superuser permissions.
+
+The server can be run on an alternate port by specifying the
+BLOGPOST_SERVER environment variable. This can be done on the command
+line as follows:
+
+	BLOGPOST_SERVER=foo.com:8080 python3 server.py >blogserver.log
+
 
 KNOWN BUGS AND LIMITATIONS
 

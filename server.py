@@ -120,7 +120,14 @@ def main():
     # using with... helps ensure the database gets closed
     with BlogDatabase('blog.db') as database:
         ApiServer.db = database
-        server = http.server.HTTPServer(('localhost', 80), ApiServer)
+        if 'BLOGPOST_SERVER' in os.environ:
+            serverspec = os.environ['BLOGPOST_SERVER'].split(':')
+            serverspec = (serverspec[0], int(serverspec[1]))
+        else:
+            serverspec = ('localhost', 80)
+
+        log.debug('opening server on {}'.format(serverspec))
+        server = http.server.HTTPServer(serverspec, ApiServer)
         log.info('blogpost API server running')
         server.serve_forever()
 
