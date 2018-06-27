@@ -43,11 +43,6 @@ line as follows:
 	BLOGPOST_SERVER=foo.com:8080 python3 server.py >blogserver.log
 
 
-KNOWN BUGS AND LIMITATIONS
-
-The blog server only runs on localhost, port 80.
-
-
 TESTING
 
 While the API can be tested using curl, a cli component is included for
